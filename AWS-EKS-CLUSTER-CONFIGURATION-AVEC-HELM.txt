@@ -1,0 +1,200 @@
+Step 1: Install AWS CLI
+    1.1 Download the AWS CLI installer:
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    1.2 Install the unzip utility (if not already installed on your system):
+        sudo apt install unzip
+    1.3 Unzip the installer:
+        unzip awscliv2.zip
+    1.4 Run the installer:
+        sudo ./aws/install
+    1.5 Configure AWS CLI:
+        aws configure
+
+
+// AWS CLI INSTALLATION COMMANDS:
+
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+sudo apt install unzip
+unzip awscliv2.zip
+sudo ./aws/install
+aws configure
+
+
+Step 2: Clone the Terraform Project and Deploy EKS
+    2.1.Clone the Terraform project folder and navigate to it:
+        git clone <terraform_project_repo>
+    2.2.Install Terraform:
+        sudo snap install terraform --classic
+    2.3.Navigate to the Terraform project folder:
+        cd <terraform_project_folder>
+    2.4.Initialize Terraform:
+        terraform init
+    2.5.Review the Terraform plan:
+        terraform plan
+    2.6.If the plan looks good, apply it to deploy the resources:
+        terraform apply --auto-approve
+
+// TERRAFORM COMMANDS:
+
+git clone <terraform_project_repo>
+sudo snap install terraform --classic
+cd <terraform_project_folder>
+terraform init
+terraform plan
+terraform apply --auto-approve
+
+Step 3: Update kubeconfig for the EKS Cluster
+    3.1.Update the kubeconfig file to include the EKS cluster:
+        Run the following command to update the kubeconfig file with your EKS cluster details:
+        aws eks --region <region> update-kubeconfig --name <name>
+        Replace the placeholders with your actual values:
+            -region: The AWS region where your EKS cluster is located.
+            -name: The name of your EKS cluster. 
+        For example:
+        aws eks --region us-east-1 update-kubeconfig --name devopsshack-cluster
+        This command retrieves the kubeconfig configuration for the devopsshack-cluster and stores it in the default kubeconfig file (e.g., ~/.kube/config).
+        You can then use kubectl to interact with your EKS cluster.
+        For example:
+        kubectl get nodes
+
+// KUBECONFIG COMMANDS:
+
+aws eks --region us-east-1 update-kubeconfig --name devopsshack-cluster
+kubectl get nodes
+
+Step 4: Install kubectl
+    4.1.Download and install kubectl binary: (https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    4.2.Make the binary executable:
+        chmod +x kubectl
+    4.3.Move the binary to a directory in your PATH:
+        sudo mv kubectl /usr/local/bin/
+    4.4.Verify the installation:
+        kubectl version --client
+
+// KUBECTL COMMANDS:
+
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+kubectl version --client
+
+Step 5: Install eksctl (Follow these steps to install eksctl, a CLI tool for managing EKS clusters):
+    5.1.Download and install eksctl binary: (https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html)
+        curl -LO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz"
+    5.2.Extract the tarball: 
+        tar -xzf eksctl_Linux_amd64.tar.gz
+    5.3.Move the binary to a system PATH directory, such as /usr/local/bin/:
+        sudo mv eksctl /usr/local/bin/
+    5.4.Verify the installation:
+        eksctl version
+
+// EKSCTL COMMANDS:
+
+curl -LO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_Linux_amd64.tar.gz"
+tar -xzf eksctl_Linux_amd64.tar.gz
+sudo mv eksctl /usr/local/bin/
+eksctl version
+
+Step 6: Associate IAM OIDC Provider with EKS Cluster
+    6.1.Associate the IAM OIDC provider with your EKS cluster:
+        eksctl utils associate-iam-oidc-provider --region <region> --cluster <cluster_name> --approve
+        Replace the placeholders with your actual values:
+            -region: The AWS region where your EKS cluster is located.
+            -cluster_name: The name of your EKS cluster.
+        For example:
+        eksctl utils associate-iam-oidc-provider --region us-east-1 --cluster devopsshack-cluster --approve
+        This command associates the IAM OIDC provider with your EKS cluster, enabling you to use IAM roles for service accounts (IRSA) in your cluster.
+
+// IAM OIDC COMMANDS:
+eksctl utils associate-iam-oidc-provider --region us-east-1 --cluster devopsshack-cluster --approve
+
+Step 7: Create an IAM Service Account for the EKS Cluster (Create a Kubernetes service account with IAM permissions for the Amazon EBS CSI Driver: https://docs.aws.amazon.com/eks/latest/userguide/csi-iam-role.html#csi-iam-role-create-service-account)
+    7.1.Create an IAM service account for the EKS cluster:
+        eksctl create iamserviceaccount
+        --region <region> \ 
+        --name <service_account_name> \ 
+        --namespace <namespace> \ 
+        --cluster <cluster_name> \ 
+        --attach-policy-arn <policy_arn> \
+        --approve\ 
+        --override-existing-serviceaccounts
+        Replace the placeholders with your actual values:
+            -service_account_name: The name of the IAM service account.
+            -namespace: The namespace in which the service account will be created.
+            -cluster_name: The name of your EKS cluster.
+            -policy_arn: The ARN of the IAM policy to attach to the service account.
+            -region: The AWS region where your EKS cluster is located.
+        For example:
+        eksctl create iamserviceaccount --region us-east-1 --name ebs-csi-controller-sa --namespace kube-system --cluster devopsshack-cluster --attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy --approve --override-existing-serviceaccounts
+            --region us-east-1: AWS region where the EKS cluster is located.
+            --cluster devopsshack-cluster: Name of the EKS cluster.
+            --name ebs-csi-controller-sa: Name of the service account.
+            --namespace kube-system: Namespace where the service account will be created.
+            --attach-policy-arn: IAM policy ARN for EBS CSI Driver permissions.
+            --approve: Automatically approve the creation.
+            --override-existing-serviceaccounts: Override existing service accounts if they exist.
+        This command creates an IAM service account named aws-load-balancer-controller in the kube-system namespace of the devopsshack-cluster and attaches the AWSLoadBalancerControllerIAMPolicy policy to it.
+
+    7.2.If the command fails, check the CloudFormation stack for errors and delete the failed stack:
+        a. Delete the stack using the AWS CLI command:
+            aws cloudformation delete-stack --stack-name EKS-devopsshack-cluster
+        b. Delete the IAM service account using the eksctl command:
+            eksctl delete iamserviceaccount \
+                --region us-east-1 \
+                --cluster devopsshack-cluster \
+                --name aws-load-balancer-controller \
+                --namespace kube-system
+        c. Delete the stack using the CloudFormation console:
+        Go to the CloudFormation console.
+            Find the failed stack.
+            Click on the stack name to open its details.
+            Click on the "Delete" button.
+            Confirm the deletion.
+
+// IAM SERVICE ACCOUNT COMMANDS:
+eksctl create iamserviceaccount 
+--region us-east-1 
+--name ebs-csi-controller-sa 
+--namespace kube-system 
+--cluster devopsshack-cluster 
+--attach-policy-arn arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy 
+--approve 
+--override-existing-serviceaccounts
+
+Step 8: Deploy the AWS EBS CSI Driver
+    8.1.Deploy the Amazon EBS CSI Driver using the following command:
+        kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.11"
+        This command deploys the Amazon EBS CSI Driver in your EKS cluster.
+    8.2.Verify the deployment:
+        kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+        This command lists the pods running the Amazon EBS CSI Driver in the kube-system namespace.
+    8.3.If the pods are not running, check the logs for errors:
+        kubectl logs -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+        This command displays the logs for the Amazon EBS CSI Driver pods.
+
+// EBS CSI DRIVER COMMANDS:
+kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=release-1.11"
+kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+kubectl logs -n kube-system -l app.kubernetes.io/name=aws-ebs-csi-driver
+
+Step 9: Deploy Application Using Manifest File
+    9.1.Apply the manifest file to deploy the application:
+        kubectl apply -f <manifest_file>
+        Replace <manifest_file> with the path to your manifest file.
+        For example:
+        kubectl apply -f manifest.yaml
+    9.2.Verify the deployment:
+        kubectl get pods
+        This command lists the pods running in your EKS cluster.
+    9.3.If the pods are not running, check the logs for errors:
+        kubectl logs <pod_name>
+        Replace <pod_name> with the name of the pod.
+        For example:
+        kubectl logs my-app-pod
+        This command displays the logs for the specified pod.
+
+// MANIFEST FILE COMMANDS:
+kubectl apply -f <manifest_file>
+kubectl get pods
+kubectl logs <pod_name>
