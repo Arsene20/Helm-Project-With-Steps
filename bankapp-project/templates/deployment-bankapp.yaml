@@ -16,6 +16,7 @@ spec:
       containers:
       - name: bankapp
         image: {{ .Values.bankapp.image }}
+        imagePullPolicy: Always  
         resources:
           requests:
             memory: {{ .Values.bankapp.resources.requests.memory }}
@@ -35,3 +36,4 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: MYSQL_ROOT_PASSWORD
+      restartPolicy: Always

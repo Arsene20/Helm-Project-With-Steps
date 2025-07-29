@@ -15,7 +15,7 @@ mysql:
     type: ClusterIP 
 
 bankapp:
-  image: "adijaiswal/bankapp:latest"
+  image: "arsene20/bankapp:latest"
   replicas: 2
   resources:
     requests:
